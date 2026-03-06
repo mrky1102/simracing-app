@@ -144,27 +144,43 @@ with t1:
         if kat_dict:
             sel_kat = st.selectbox("Kategória választása", sorted(list(kat_dict.keys())))
             sel_palya = st.selectbox("Pálya választása", sorted(kat_dict[sel_kat]))
-            with st.form("entry", clear_on_submit=True):
+            
+            with st.form("entry_form", clear_on_submit=True):
                 auto = st.text_input("Használt autó")
                 nev = st.selectbox("Versenyző", conf["nevek"])
-                ido = st.text_input("Idő (p:mp.ezred)", placeholder="pl. 1:24.503")
-                if st.form_submit_button("💾 MENTÉS A FELHŐBE"):
-                    if ":" in ido and "." in ido:
+                ido_raw = st.text_input("Idő (p:mp.ezred)", placeholder="pl. 1:24.503")
+                submit = st.form_submit_button("💾 MENTÉS A FELHŐBE")
+                
+                if submit:
+                    if ":" in ido_raw and "." in ido_raw:
                         try:
-                            p, mp = ido.split(":")
-                            total = int(p) * 60 + float(mp)
-                            new_row = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
-                            st.session_state.app_data["results"].append(new_row)
+                            parts = ido_raw.split(":")
+                            p = int(parts[0])
+                            mp = float(parts[1])
+                            total_sec = p * 60 + mp
+                            
+                            new_entry = {
+                                "Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "Játék": sel_jatek,
+                                "Kategória": sel_kat,
+                                "Pálya": sel_palya,
+                                "Autó": auto,
+                                "Versenyző": nev,
+                                "Másodperc": total_sec,
+                                "Idő": ido_raw
+                            }
+                            
+                            st.session_state.app_data["results"].append(new_entry)
                             if save_to_github(st.session_state.app_data):
-                                st.success("Sikeres mentés!")
+                                st.success(f"Sikeres mentés: {nev} - {ido_raw}")
                                 st.rerun()
                             else:
-                                st.error("Hiba a GitHub mentés során!")
-                        except:
-                            st.error("Érvénytelen számformátum!")
+                                st.error("GitHub hiba! Ellenőrizd a kapcsolatot.")
+                        except ValueError:
+                            st.error("Érvénytelen számok az időben!")
                     else:
-                        st.error("Használd a p:mp.ezred formátumot!")
-    else: st.info("Nincs játék.")
+                        st.error("Használd a pontos formátumot (pl. 1:24.503)!")
+    else: st.info("Nincs játék az adatbázisban.")
         
 # --- TABELLA (Javított dizájn) ---
 with t2:
@@ -346,6 +362,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
