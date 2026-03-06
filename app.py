@@ -219,6 +219,33 @@ with t2:
 # --- BŐVÍTETT ADMIN ---
 with t3:
     st.header("⚙️ Adminisztrációs Központ")
+
+# Jelszó ellenőrzés
+    if "admin_authenticated" not in st.session_state:
+        st.session_state.admin_authenticated = False
+
+    if not st.session_state.admin_authenticated:
+        password_input = st.text_input("Kérlek, add meg az admin jelszót", type="password")
+        if st.button("Bejelentkezés"):
+            if password_input == st.secrets["ADMIN_PASSWORD"]:
+                st.session_state.admin_authenticated = True
+                st.success("Sikeres bejelentkezés!")
+                st.rerun()
+            else:
+                st.error("Hibás jelszó!")
+    else:
+        # Itt kezdődik a tényleges admin felület, ami csak belépés után látszik
+        if st.button("🔓 KIJELENTKEZÉS"):
+            st.session_state.admin_authenticated = False
+            st.rerun()
+            
+        st.divider()
+        
+        # Ide jön a korábbi admin kód (Frissítés gomb, Versenyzők, Játékok kezelése, stb.)
+        if st.button("🔄 ADATOK FRISSÍTÉSE A FELHŐBŐL"):
+            st.session_state.app_data = load_from_github()
+            st.rerun()
+    
     if st.button("🔄 ADATOK FRISSÍTÉSE A FELHŐBŐL"):
         st.session_state.app_data = load_from_github(); st.rerun()
 
@@ -296,5 +323,6 @@ with t3:
     st.divider()
     if st.button("🚨 ÖSSZES EREDMÉNY TÖRLÉSE (VÉGLEGES)", type="primary"):
         st.session_state.app_data["results"] = []; save_to_github(st.session_state.app_data); st.rerun()
+
 
 
