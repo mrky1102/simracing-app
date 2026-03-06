@@ -142,42 +142,62 @@ with t1:
 
 # --- TABELLA (Javított dizájn) ---
 with t2:
-    df = pd.DataFrame(st.session_state.app_data["results"])
+    results_list = st.session_state.app_data["results"]
+    df = pd.DataFrame(results_list)
     if not df.empty:
-        j_sel = st.selectbox("Játék választása", list(conf["jatekok"].keys()), key="tab_j")
+        j_sel = st.selectbox("Bajnokság választása", list(conf["jatekok"].keys()))
         df_f = df[df["Játék"] == j_sel]
         
+        # Pontok és érmek kiszámítása
         pts = {n: 0 for n in conf["nevek"]}
+        medals = {n: {"arany": 0, "ezüst": 0, "bronz": 0} for n in conf["nevek"]}
+        
         if not df_f.empty:
             best_times = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
             for track in best_times["Pálya"].unique():
                 tr_res = best_times[best_times["Pálya"] == track].sort_values("Másodperc").head(3)
                 for i, (_, row) in enumerate(tr_res.iterrows()):
-                    if row["Versenyző"] in pts: pts[row["Versenyző"]] += (3 if i == 0 else 2 if i == 1 else 1)
-        
+                    v = row["Versenyző"]
+                    if v in pts:
+                        pts[v] += (3 if i == 0 else 2 if i == 1 else 1)
+                        if i == 0: medals[v]["arany"] += 1
+                        elif i == 1: medals[v]["ezüst"] += 1
+                        elif i == 2: medals[v]["bronz"] += 1
+
+        # 1. Pontszám kártyák
         sorted_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
         cols = st.columns(len(sorted_pts))
         for idx, (name, score) in enumerate(sorted_pts):
             style = "gold" if idx == 0 else "silver" if idx == 1 else "bronze" if idx == 2 else ""
-            medal = "🥇" if idx == 0 else "🥈" if idx == 1 else "🥉" if idx == 2 else f"#{idx+1}"
+            m_icon = "🥇" if idx == 0 else "🥈" if idx == 1 else "🥉" if idx == 2 else f"#{idx+1}"
             with cols[idx]:
-                st.markdown(f"""
-                <div class="card {style}">
-                    <span class="medal-icon">{medal}</span>
-                    <div class="player-name">{name.upper()}</div>
-                    <div class="points">{score} pont</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<div class="card {style}"><span class="medal-icon">{m_icon}</span><div class="player-name">{name.upper()}</div><div class="points">{score} pont</div></div>', unsafe_allow_html=True)
+
+        # 2. Összesített éremtáblázat
+        st.divider()
+        st.subheader("🏅 Összesített Éremtáblázat")
+        m_data = []
+        for name in conf["nevek"]:
+            m_data.append({"Név": name, "🥇": medals[name]["arany"], "🥈": medals[name]["ezüst"], "🥉": medals[name]["bronz"], "Össz": sum(medals[name].values())})
+        m_df = pd.DataFrame(m_data).sort_values(["🥇", "🥈", "🥉"], ascending=False)
         
+        # HTML táblázat a biztos láthatóságért
+        medal_html = "<table class='medal-table'><tr><th>Pilóta</th><th>🥇</th><th>🥈</th><th>🥉</th><th>Össz</th></tr>"
+        for _, r in m_df.iterrows():
+            medal_html += f"<tr><td><b>{r['Név']}</b></td><td>{r['🥇']}</td><td>{r['🥈']}</td><td>{r['🥉']}</td><td>{r['Össz']}</td></tr>"
+        medal_html += "</table>"
+        st.markdown(medal_html, unsafe_allow_html=True)
+
+        # 3. Pálya rangsorok
         st.divider()
         st.subheader("📍 Pálya Rangsorok")
         all_tr = sorted(df_f["Pálya"].unique())
         if all_tr:
-            p_sel = st.selectbox("Pálya választása", all_tr)
+            p_sel = st.selectbox("Válassz pályát", all_tr)
             t_df = df_f[df_f["Pálya"] == p_sel].loc[df_f[df_f["Pálya"] == p_sel].groupby("Versenyző")["Másodperc"].idxmin()].sort_values("Másodperc")
             for i, (_, r) in enumerate(t_df.iterrows(), 1):
                 st.markdown(f'<div class="track-row">{i}. <b>{r["Versenyző"]}</b>: {r["Idő"]} <small>({r["Autó"]})</small></div>', unsafe_allow_html=True)
-    else: st.info("Még nincsenek adatok.")
+    else: st.info("Még nincsenek adatok a bajnokságban.")
 
 # --- BŐVÍTETT ADMIN ---
 with t3:
@@ -228,3 +248,4 @@ with t3:
     if st.button("🚨 ÖSSZES EREDMÉNY TÖRLÉSE", type="primary"):
         st.session_state.app_data["results"] = []
         save_to_github(st.session_state.app_data); st.rerun()
+
