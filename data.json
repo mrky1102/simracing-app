@@ -1,5 +1,16 @@
 {
-    "results": [],
+    "results": [
+        {
+            "Dátum": "2026-03-06 17:20",
+            "Játék": "Dirt Rally 2.0",
+            "Kategória": "Monaco",
+            "Pálya": "Col de Turini - Départ (9.84 km)",
+            "Autó": "Porsche GT3RS",
+            "Versenyző": "mrky",
+            "Másodperc": 211.213,
+            "Idő": "3:31.213"
+        }
+    ],
     "config": {
         "nevek": [
             "mrky",
