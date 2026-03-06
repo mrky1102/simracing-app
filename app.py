@@ -1,10 +1,9 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
-import os
-import json
 
-# --- 1. HIVATALOS ADATBÁZISOK (GT7 & DIRT RALLY 2.0) ---
+# --- 1. ADATBÁZISOK ---
 NEVEK = ["mrky", "Radnom", "Nova"]
 
 GT7_FULL = {
@@ -35,32 +34,21 @@ DIRT_FULL = {
     "Sweden": ["Hamra (12.34 km)", "Älgsjön (7.35 km)", "Lysvik (12.67 km)", "Ransbysäter (11.98 km)", "Norraskoga (11.98 km)", "Skogsrallyt (5.25 km)", "Älgsjön Sprint (5.25 km)", "Björklangen (5.19 km)", "Östra Hinnsjön (5.19 km)", "Stor-Jangen Sprint (6.68 km)", "Stor-Jangen Sprint Reverse (6.68 km)", "Älgsjön Reverse (7.35 km)"]
 }
 
-# --- 2. LOGIKA ÉS KEZELŐFELÜLET ---
-st.set_page_config(page_title="SimRacing Arena PRO v35.1", layout="wide")
+# --- 2. FELHŐ KAPCSOLÓDÁS ---
+st.set_page_config(page_title="SimRacing Arena CLOUD", layout="wide")
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-CONFIG_FILE = "config_db.json"
-DATA_FILE = "verseny_adatok.csv"
-
-def load_all_configs():
-    default = {"nevek": NEVEK, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return default
-
-def save_all_configs(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=4)
-
-if 'config' not in st.session_state:
-    st.session_state.config = load_all_configs()
+def load_data():
+    try:
+        # Kiolvassuk a 'results' fület, ttl=0 biztosítja a friss adatot
+        return conn.read(worksheet="results", ttl="0s")
+    except:
+        return pd.DataFrame(columns=["Dátum", "Játék", "Kategória", "Pálya", "Autó", "Versenyző", "Másodperc", "Idő"])
 
 if 'results' not in st.session_state:
-    if os.path.exists(DATA_FILE):
-        st.session_state.results = pd.read_csv(DATA_FILE)
-    else:
-        st.session_state.results = pd.DataFrame(columns=["Dátum", "Játék", "Kategória", "Pálya", "Autó", "Versenyző", "Másodperc", "Idő"])
+    st.session_state.results = load_data()
 
+# --- 3. MEGJELENÉS ---
 st.markdown("""
 <style>
     .card { padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 2px solid #555; text-align: center; }
@@ -73,136 +61,70 @@ st.markdown("""
 
 t1, t2, t3 = st.tabs(["🏁 ÚJ IDŐ", "🏆 TABELLA", "⚙️ ADMIN"])
 
-# ÚJ IDŐ RÖGZÍTÉSE
+# --- ÚJ IDŐ ---
 with t1:
     st.subheader("Idő rögzítése")
-    j_list = list(st.session_state.config["jatekok"].keys())
-    if j_list:
-        sel_jatek = st.selectbox("Játék", j_list, key="main_j")
-        kat_dict = st.session_state.config["jatekok"][sel_jatek]
-        sel_kat = st.selectbox("Kategória / Ország", sorted(list(kat_dict.keys())), key="main_k")
-        sel_palya = st.selectbox("Pálya / Szakasz", sorted(kat_dict[sel_kat]), key="main_p")
+    sel_jatek = st.selectbox("Játék", ["Gran Turismo 7", "Dirt Rally 2.0"], key="main_j")
+    kat_dict = GT7_FULL if sel_jatek == "Gran Turismo 7" else DIRT_FULL
+    sel_kat = st.selectbox("Kategória / Ország", sorted(list(kat_dict.keys())), key="main_k")
+    sel_palya = st.selectbox("Pálya / Szakasz", sorted(kat_dict[sel_kat]), key="main_p")
 
-        with st.form("entry", clear_on_submit=True):
-            auto = st.text_input("Használt autó")
-            nev = st.selectbox("Versenyző", st.session_state.config["nevek"])
-            ido = st.text_input("Idő (p:mp.ezred)")
-            if st.form_submit_button("💾 MENTÉS", use_container_width=True):
-                try:
-                    p, mp = ido.split(":")
-                    total = int(p) * 60 + float(mp)
-                    new_row = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M"), sel_jatek, sel_kat, sel_palya, auto, nev, total, ido]], columns=st.session_state.results.columns)
-                    st.session_state.results = pd.concat([st.session_state.results, new_row], ignore_index=True)
-                    st.session_state.results.to_csv(DATA_FILE, index=False)
-                    st.rerun()
-                except: st.error("Hibás formátum!")
+    with st.form("entry", clear_on_submit=True):
+        auto = st.text_input("Használt autó")
+        nev = st.selectbox("Versenyző", NEVEK)
+        ido = st.text_input("Idő (p:mp.ezred)", placeholder="pl. 1:24.500")
+        if st.form_submit_button("💾 MENTÉS A FELHŐBE", use_container_width=True):
+            try:
+                p_p, mp_p = ido.split(":")
+                total = int(p_p) * 60 + float(mp_p)
+                new_row = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M"), sel_jatek, sel_kat, sel_palya, auto, nev, total, ido]], columns=st.session_state.results.columns)
+                st.session_state.results = pd.concat([st.session_state.results, new_row], ignore_index=True)
+                # FELHŐ FRISSÍTÉS
+                conn.update(worksheet="results", data=st.session_state.results)
+                st.success("Adatok szinkronizálva a Google Drive-val!")
+                st.rerun()
+            except: st.error("Hibás formátum! (p:mp.ezred)")
 
-# TABELLA ÉS RANGSOROK
+# --- TABELLA ---
 with t2:
-    j_list = list(st.session_state.config["jatekok"].keys())
-    if j_list:
-        b_sel = st.selectbox("Játék választása", j_list, key="view_j")
-        st.subheader("🥇 Bajnoki Összesített")
-        df_f = st.session_state.results[st.session_state.results["Játék"] == b_sel]
-        
-        pts = {n: 0 for n in st.session_state.config["nevek"]}
-        if not df_f.empty:
-            bests = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
-            for p in bests["Pálya"].unique():
-                r = bests[bests["Pálya"] == p].sort_values("Másodperc").head(3)
-                for i, (_, row) in enumerate(r.iterrows()):
-                    if row["Versenyző"] in pts: pts[row["Versenyző"]] += (3 if i==0 else 2 if i==1 else 1)
-        
-        sorted_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
-        cols = st.columns(len(sorted_pts) if len(sorted_pts) > 0 else 1)
-        for idx, (n, p) in enumerate(sorted_pts):
-            c = "gold" if idx==0 else "silver" if idx==1 else "bronze" if idx==2 else "normal"
-            medaly = "🥇" if idx==0 else "🥈" if idx==1 else "🥉" if idx==2 else f"#{idx+1}"
-            with cols[idx]: 
-                st.markdown(f'<div class="card {c}"><div style="font-size:3rem;">{medaly}</div><b style="font-size:1.5rem;">{n.upper()}</b><br><span style="font-size:1.2rem;">{p} pont</span></div>', unsafe_allow_html=True)
-
-        st.divider()
-        st.subheader("📍 Részletes Pálya Rangsorok")
-        tracks = sorted(df_f["Pálya"].unique()) if not df_f.empty else []
-        if tracks:
-            s_t = st.selectbox("Pálya választása", tracks)
-            t_df = df_f[df_f["Pálya"] == s_t].loc[df_f[df_f["Pálya"] == s_t].groupby("Versenyző")["Másodperc"].idxmin()].sort_values("Másodperc")
-            for i, (_, r) in enumerate(t_df.iterrows(), 1):
-                st.markdown(f'<div class="track-row">{i}. <b>{r["Versenyző"]}</b>: {r["Idő"]} ({r["Autó"]})</div>', unsafe_allow_html=True)
-
-# SZUPER-ADMIN FELÜLET
-with t3:
-    st.header("⚙️ Rendszerkezelés")
+    b_sel = st.selectbox("Játék választása", ["Gran Turismo 7", "Dirt Rally 2.0"], key="view_j")
+    st.subheader("🥇 Bajnoki Összesített")
+    df_f = st.session_state.results[st.session_state.results["Játék"] == b_sel]
     
-    # Versenyzők
-    st.subheader("👥 Versenyzők")
-    v1, v2, v3 = st.columns(3)
-    with v1:
-        new_v = st.text_input("Új versenyző")
-        if st.button("Hozzáadás", key="add_v"):
-            if new_v: st.session_state.config["nevek"].append(new_v); save_all_configs(st.session_state.config); st.rerun()
-    with v2:
-        mod_v_old = st.selectbox("Név módosítása", st.session_state.config["nevek"])
-        mod_v_new = st.text_input("Új név erre", key="mod_v_input")
-        if st.button("Átnevezés", key="mod_v_btn"):
-            idx = st.session_state.config["nevek"].index(mod_v_old); st.session_state.config["nevek"][idx] = mod_v_new; save_all_configs(st.session_state.config); st.rerun()
-    with v3:
-        del_v = st.selectbox("Törlés", st.session_state.config["nevek"], key="del_v_sel")
-        if st.button("Versenyző törlése", type="primary", key="del_v_btn"):
-            st.session_state.config["nevek"].remove(del_v); save_all_configs(st.session_state.config); st.rerun()
+    pts = {n: 0 for n in NEVEK}
+    if not df_f.empty:
+        best_ones = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
+        for p in best_ones["Pálya"].unique():
+            r = best_ones[best_ones["Pálya"] == p].sort_values("Másodperc").head(3)
+            for i, (_, row) in enumerate(r.iterrows()):
+                if row["Versenyző"] in pts: pts[row["Versenyző"]] += (3 if i==0 else 2 if i==1 else 1)
+    
+    sorted_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
+    cols = st.columns(len(sorted_pts) if len(sorted_pts) > 0 else 1)
+    for idx, (n, p) in enumerate(sorted_pts):
+        c = "gold" if idx==0 else "silver" if idx==1 else "bronze" if idx==2 else "normal"
+        m = "🥇" if idx==0 else "🥈" if idx==1 else "🥉" if idx==2 else f"#{idx+1}"
+        with cols[idx]: 
+            st.markdown(f'<div class="card {c}"><div style="font-size:3rem;">{m}</div><b style="font-size:1.5rem;">{n.upper()}</b><br><span style="font-size:1.2rem;">{p} pont</span></div>', unsafe_allow_html=True)
 
     st.divider()
+    st.subheader("📍 Pálya Rangsorok")
+    tracks = sorted(df_f["Pálya"].unique()) if not df_f.empty else []
+    if tracks:
+        s_t = st.selectbox("Pálya választása", tracks)
+        t_df = df_f[df_f["Pálya"] == s_t].loc[df_f[df_f["Pálya"] == s_t].groupby("Versenyző")["Másodperc"].idxmin()].sort_values("Másodperc")
+        for i, (_, r) in enumerate(t_df.iterrows(), 1):
+            st.markdown(f'<div class="track-row">{i}. <b>{r["Versenyző"]}</b>: {r["Idő"]} ({r["Autó"]})</div>', unsafe_allow_html=True)
 
-    # Játékok
-    st.subheader("🎮 Játékok")
-    j1, j2, j3 = st.columns(3)
-    with j1:
-        new_j = st.text_input("Új játék")
-        if st.button("Létrehozás", key="add_j"):
-            if new_j: st.session_state.config["jatekok"][new_j] = {}; save_all_configs(st.session_state.config); st.rerun()
-    with j2:
-        mod_j_old = st.selectbox("Játék átnevezése", list(st.session_state.config["jatekok"].keys()))
-        mod_j_new = st.text_input("Új név", key="mod_j_input")
-        if st.button("Játék átírása", key="mod_j_btn"):
-            st.session_state.config["jatekok"][mod_j_new] = st.session_state.config["jatekok"].pop(mod_j_old); save_all_configs(st.session_state.config); st.rerun()
-    with j3:
-        del_j = st.selectbox("Játék törlése", list(st.session_state.config["jatekok"].keys()), key="del_j_sel")
-        if st.button("Végleges törlés", type="primary", key="del_j_btn"):
-            del st.session_state.config["jatekok"][del_j]; save_all_configs(st.session_state.config); st.rerun()
-
-    st.divider()
-
-    # Pályák
-    st.subheader("📍 Pályák és Kategóriák")
-    sel_j_adm = st.selectbox("Melyik játékot szerkeszted?", list(st.session_state.config["jatekok"].keys()), key="adm_j")
-    k1, k2 = st.columns(2)
-    with k1:
-        st.write("**Kategória**")
-        new_k = st.text_input("Új kategória")
-        if st.button("Kat. hozzáadása"):
-            st.session_state.config["jatekok"][sel_j_adm][new_k] = []; save_all_configs(st.session_state.config); st.rerun()
-        
-        kat_list = list(st.session_state.config["jatekok"][sel_j_adm].keys())
-        if kat_list:
-            del_k = st.selectbox("Kat. törlése", kat_list)
-            if st.button("Kategória törlése", type="primary"):
-                del st.session_state.config["jatekok"][sel_j_adm][del_k]; save_all_configs(st.session_state.config); st.rerun()
-
-    with k2:
-        st.write("**Pálya**")
-        if kat_list:
-            target_k = st.selectbox("Válassz kategóriát", kat_list, key="adm_k")
-            new_p = st.text_input("Új pálya neve")
-            if st.button("Pálya hozzáadása"):
-                st.session_state.config["jatekok"][sel_j_adm][target_k].append(new_p); save_all_configs(st.session_state.config); st.rerun()
-            
-            p_list_adm = st.session_state.config["jatekok"][sel_j_adm][target_k]
-            if p_list_adm:
-                del_p = st.selectbox("Pálya törlése", p_list_adm)
-                if st.button("Pálya törlése", type="primary"):
-                    st.session_state.config["jatekok"][sel_j_adm][target_k].remove(del_p); save_all_configs(st.session_state.config); st.rerun()
-
-    st.divider()
-    if st.button("⚠️ TELJES PÁLYALISTA FRISSÍTÉSE", type="primary", use_container_width=True):
-        st.session_state.config = {"nevek": st.session_state.config["nevek"], "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
-        save_all_configs(st.session_state.config); st.rerun()
+# --- ADMIN ---
+with t3:
+    st.header("⚙️ Adminisztráció")
+    if st.button("🔄 ADATOK KÉNYSZERÍTETT ÚJRATÖLTÉSE A GOOGLE-BŐL", use_container_width=True):
+        st.session_state.results = load_data()
+        st.rerun()
+    
+    if st.button("⚠️ ÖSSZES EREDMÉNY TÖRLÉSE (NULLÁZÁS)", type="primary", use_container_width=True):
+        empty_df = pd.DataFrame(columns=["Dátum", "Játék", "Kategória", "Pálya", "Autó", "Versenyző", "Másodperc", "Idő"])
+        conn.update(worksheet="results", data=empty_df)
+        st.session_state.results = empty_df
+        st.rerun()
