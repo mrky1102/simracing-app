@@ -1,36 +1,5 @@
 {
-    "results": [
-        {
-            "Dátum": "2026-03-06 17:12",
-            "Játék": "Gran Turismo 7",
-            "Kategória": "GT7 - World Circuits (Americas)",
-            "Pálya": "Blue Moon Bay (3.20 km)",
-            "Autó": "2222",
-            "Versenyző": "mrky",
-            "Másodperc": 71.111,
-            "Idő": "1:11.111"
-        },
-        {
-            "Dátum": "2026-03-06 17:17",
-            "Játék": "Dirt Rally 2.0",
-            "Kategória": "Argentina",
-            "Pálya": "Capilla del Monte (4.48 km)",
-            "Autó": "GT3RS",
-            "Versenyző": "mrky",
-            "Másodperc": 11.222,
-            "Idő": "0:11.222"
-        },
-        {
-            "Dátum": "2026-03-06 17:19",
-            "Játék": "Dirt Rally 2.0",
-            "Kategória": "Argentina",
-            "Pálya": "Capilla del Monte (4.48 km)",
-            "Autó": "333",
-            "Versenyző": "mrky",
-            "Másodperc": 82.22200000000001,
-            "Idő": "1:22.222"
-        }
-    ],
+    "results": [],
     "config": {
         "nevek": [
             "mrky",
