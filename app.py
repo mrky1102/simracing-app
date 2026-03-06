@@ -122,7 +122,9 @@ with t1:
                 auto = st.text_input("Autó")
                 nev = st.selectbox("Versenyző", conf["nevek"])
                 ido_raw = st.text_input("Idő (p:mp.ezred)", placeholder="pl. 1:22.450")
-                if st.form_submit_button("💾 MENTÉS"):
+                submit = st.form_submit_button("💾 MENTÉS")
+                
+                if submit:
                     if ":" in ido_raw and "." in ido_raw:
                         try:
                             p_part, mp_part = ido_raw.split(":")
@@ -130,12 +132,12 @@ with t1:
                             new_row = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido_raw}
                             st.session_state.app_data["results"].append(new_row)
                             if save_to_github(st.session_state.app_data):
-                                st.success(f"✅ Mentve!")
+                                st.success("✅ Sikeres mentés!")
                                 time.sleep(1)
                                 st.rerun()
-                        except: st.error("Hibás formátum!")
-                    else: st.error("Formátum: p:mp.ezred")
-
+                        except: pass # Csendes hiba
+                    else: st.warning("Kérlek használd a p:mp.ezred formátumot!")
+                        
 # --- TAB 2: TABELLA ÉS ÉREMTÁBLÁZAT ---
 with t2:
     results = st.session_state.app_data["results"]
@@ -321,6 +323,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
