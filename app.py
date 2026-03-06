@@ -245,6 +245,34 @@ with t3:
         if st.button("🔄 ADATOK FRISSÍTÉSE GITHUBRÓL"):
             st.session_state.app_data = load_from_github(); st.rerun()
 
+
+        st.divider()
+        st.subheader("🗑️ Mentett idők kezelése / Törlése")
+        res_list = st.session_state.app_data["results"]
+        if res_list:
+            df_manage = pd.DataFrame(res_list)
+            # Megjelenítünk egy táblázatot választóval
+            st.write("Válaszd ki a törölni kívánt időket:")
+            # Sorszámozott lista a törléshez
+            delete_idx = st.multiselect("Törlendő sorok (Dátum - Név - Pálya - Idő)", 
+                                        options=range(len(res_list)),
+                                        format_func=lambda x: f"{res_list[x]['Dátum']} | {res_list[x]['Versenyző']} | {res_list[x]['Pálya']} | {res_list[x]['Idő']}")
+            
+            if st.button("❌ KIJELÖLT IDŐK TÖRLÉSE", type="primary"):
+                if delete_idx:
+                    # Fordított sorrendben törlünk, hogy az indexek ne csússzanak el
+                    for i in sorted(delete_idx, reverse=True):
+                        st.session_state.app_data["results"].pop(i)
+                    save_to_github(st.session_state.app_data)
+                    st.success("Törlés sikeres!")
+                    st.rerun()
+                else:
+                    st.warning("Nincs semmi kijelölve!")
+        else:
+            st.info("Nincsenek mentett eredmények.")
+
+        st.divider()
+        
         # 1. VERSENYZŐK
         st.subheader("👤 Versenyzők kezelése")
         v1, v2, v3 = st.columns(3)
@@ -317,6 +345,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
