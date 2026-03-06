@@ -137,26 +137,34 @@ t1, t2, t3 = st.tabs(["🏁 ÚJ IDŐ", "🏆 TABELLA", "⚙️ ADMIN"])
 # --- ÚJ IDŐ ---
 with t1:
     conf = st.session_state.app_data["config"]
-    sel_jatek = st.selectbox("Játék", list(conf["jatekok"].keys()))
-    kat_dict = conf["jatekok"][sel_jatek]
-    if kat_dict:
-        sel_kat = st.selectbox("Kategória", sorted(list(kat_dict.keys())))
-        sel_palya = st.selectbox("Pálya", sorted(kat_dict[sel_kat]))
-        with st.form("entry", clear_on_submit=True):
-            auto = st.text_input("Autó")
-            nev = st.selectbox("Versenyző", conf["nevek"])
-            ido = st.text_input("Idő (p:mp.ezred)")
-            if st.form_submit_button("💾 MENTÉS"):
-                try:
-                    p, mp = ido.split(":")
-                    total = int(p) * 60 + float(mp)
-                    new_row = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
-                    st.session_state.app_data["results"].append(new_row)
-                    save_to_github(st.session_state.app_data)
-                    st.success("Mentve!")
-                    st.rerun()
-                except: st.error("Formátum: p:mp.ezred")
-
+    j_list = list(conf["jatekok"].keys())
+    if j_list:
+        sel_jatek = st.selectbox("Játék választása", j_list)
+        kat_dict = conf["jatekok"][sel_jatek]
+        if kat_dict:
+            sel_kat = st.selectbox("Kategória választása", sorted(list(kat_dict.keys())))
+            sel_palya = st.selectbox("Pálya választása", sorted(kat_dict[sel_kat]))
+            with st.form("entry", clear_on_submit=True):
+                auto = st.text_input("Használt autó")
+                nev = st.selectbox("Versenyző", conf["nevek"])
+                ido = st.text_input("Idő (p:mp.ezred)", placeholder="pl. 1:24.503")
+                if st.form_submit_button("💾 MENTÉS A FELHŐBE"):
+                    if ":" in ido and "." in ido:
+                        try:
+                            p, mp = ido.split(":")
+                            total = int(p) * 60 + float(mp)
+                            new_row = {"id": datetime.now().timestamp(), "Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
+                            st.session_state.app_data["results"].append(new_row)
+                            save_to_github(st.session_state.app_data)
+                            st.success("Sikeres mentés!")
+                            st.rerun()
+                        except:
+                            st.error("Hiba történt a feldolgozáskor!")
+                    else:
+                        st.error("Hibás formátum! Használj kettőspontot és pontot (p:mp.ezred)")
+        else: st.warning("Nincsenek kategóriák.")
+    else: st.info("Nincs játék.")
+        
 # --- TABELLA (Javított dizájn) ---
 with t2:
     results_list = st.session_state.app_data["results"]
@@ -309,6 +317,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
