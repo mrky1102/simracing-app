@@ -1,9 +1,9 @@
-import requests
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 import json
-import os
+import requests
+import base64
 
 # --- 1. HIVATALOS ADATBÁZISOK ---
 NEVEK_DEFAULT = ["mrky", "Radnom", "Nova"]
@@ -212,6 +212,7 @@ with t3:
     if st.button("⚠️ GYÁRI PÁLYALISTA VISSZAÁLLÍTÁSA"):
         st.session_state.config = {"nevek": st.session_state.config["nevek"], "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
         sync_config(); st.rerun()
+
 
 
 
