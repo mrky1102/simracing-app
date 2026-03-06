@@ -69,32 +69,31 @@ def save_to_github(data):
 
 # --- 3. SESSION STATE INICIALIZÁLÁS ---
 if 'app_data' not in st.session_state:
-    loaded = load_from_github()
-    if loaded:
-        st.session_state.app_data = loaded
+    loaded_data = load_from_github()
+    if loaded_data and "config" in loaded_data:
+        st.session_state.app_data = loaded_data
     else:
         st.session_state.app_data = {
             "results": [],
             "config": {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
         }
 
-# Biztonsági ellenőrzés a hiba ellen
-if "config" not in st.session_state.app_data:
-    st.session_state.app_data["config"] = {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
-
 st.set_page_config(page_title="SimRacing Arena GITHUB-CLOUD", layout="wide")
 
-# --- 4. MEGJELENÉS ---
+# --- CSS STÍLUSOK ---
 st.markdown("""
 <style>
     .card { padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 4px solid #555; text-align: center; }
     .gold { border-color: #FFD700 !important; background-color: #3d3500; }
+    .silver { border-color: #C0C0C0 !important; background-color: #2e2e2e; }
+    .bronze { border-color: #CD7F32 !important; background-color: #331a00; }
     .track-row { background: #1e1e1e; padding: 10px; border-radius: 8px; margin-top: 5px; border: 1px solid #333; }
 </style>
 """, unsafe_allow_html=True)
 
 t1, t2, t3 = st.tabs(["🏁 ÚJ IDŐ", "🏆 TABELLA", "⚙️ ADMIN"])
 
+# --- T1: ÚJ IDŐ ---
 with t1:
     conf = st.session_state.app_data["config"]
     sel_jatek = st.selectbox("Játék", list(conf["jatekok"].keys()))
@@ -106,53 +105,60 @@ with t1:
         auto = st.text_input("Autó")
         nev = st.selectbox("Versenyző", conf["nevek"])
         ido = st.text_input("Idő (p:mp.ezred)")
-        if st.form_submit_button("💾 MENTÉS"):
+        if st.form_submit_button("💾 MENTÉS A FELHŐBE"):
             try:
                 p, mp = ido.split(":")
                 total = int(p) * 60 + float(mp)
-                new_res = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
+                new_res = {"Dátum": datetime.now().strftime("%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
                 st.session_state.app_data["results"].append(new_res)
                 if save_to_github(st.session_state.app_data):
-                    st.success("Mentve a felhőbe!")
+                    st.success("Sikeres mentés!")
                     st.rerun()
-                else:
-                    st.error("Felhő mentési hiba!")
-            except:
-                st.error("Hibás formátum!")
-                
-# TABELLA ÉS RANGSOROK
-with t2:
-    j_list = list(st.session_state.config["jatekok"].keys())
-    if j_list:
-        b_sel = st.selectbox("Játék választása", j_list, key="view_j")
-        st.subheader("🥇 Bajnoki Összesített")
-        df_f = st.session_state.results[st.session_state.results["Játék"] == b_sel]
-        
-        pts = {n: 0 for n in st.session_state.config["nevek"]}
-        if not df_f.empty:
-            best_ones = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
-            for p in best_ones["Pálya"].unique():
-                r = best_ones[best_ones["Pálya"] == p].sort_values("Másodperc").head(3)
-                for i, (_, row) in enumerate(r.iterrows()):
-                    if row["Versenyző"] in pts: pts[row["Versenyző"]] += (3 if i==0 else 2 if i==1 else 1)
-        
-        sorted_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
-        cols = st.columns(len(sorted_pts) if len(sorted_pts) > 0 else 1)
-        for idx, (n, p) in enumerate(sorted_pts):
-            c = "gold" if idx==0 else "silver" if idx==1 else "bronze" if idx==2 else "normal"
-            m = "🥇" if idx==0 else "🥈" if idx==1 else "🥉" if idx==2 else f"#{idx+1}"
-            with cols[idx]: 
-                st.markdown(f'<div class="card {c}"><div style="font-size:3rem;">{m}</div><b>{n.upper()}</b><br>{p} pont</div>', unsafe_allow_html=True)
+                else: st.error("GitHub hiba!")
+            except: st.error("Formátum: p:mp.ezred")
 
+# --- T2: TABELLA (A TELJES VERZIÓ) ---
+with t2:
+    results_list = st.session_state.app_data["results"]
+    df = pd.DataFrame(results_list)
+    
+    if not df.empty:
+        j_sel = st.selectbox("Játék választása", list(conf["jatekok"].keys()), key="tab_j")
+        st.subheader(f"🥇 {j_sel} Bajnokság")
+        df_f = df[df["Játék"] == j_sel]
+        
+        # Pontszámítás: minden pálya legjobb idejei alapján (3-2-1 pont)
+        pts = {n: 0 for n in conf["nevek"]}
+        if not df_f.empty:
+            # Csoportosítás pálya és versenyző szerint, a legkisebb másodperc kiválasztása
+            best_times = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
+            for track in best_times["Pálya"].unique():
+                track_results = best_times[best_times["Pálya"] == track].sort_values("Másodperc").head(3)
+                for i, (_, row) in enumerate(track_results.iterrows()):
+                    if row["Versenyző"] in pts:
+                        pts[row["Versenyző"]] += (3 if i == 0 else 2 if i == 1 else 1)
+        
+        # Kártyák megjelenítése
+        sorted_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
+        cols = st.columns(len(sorted_pts))
+        for idx, (name, score) in enumerate(sorted_pts):
+            style = "gold" if idx == 0 else "silver" if idx == 1 else "bronze" if idx == 2 else ""
+            medal = "🥇" if idx == 0 else "🥈" if idx == 1 else "🥉" if idx == 2 else f"#{idx+1}"
+            with cols[idx]:
+                st.markdown(f'<div class="card {style}"><h1>{medal}</h1><b>{name.upper()}</b><br>{score} pont</div>', unsafe_allow_html=True)
+        
         st.divider()
         st.subheader("📍 Pálya Rangsorok")
-        tracks = sorted(df_f["Pálya"].unique()) if not df_f.empty else []
-        if tracks:
-            s_t = st.selectbox("Pálya választása", tracks)
-            t_df = df_f[df_f["Pálya"] == s_t].loc[df_f[df_f["Pálya"] == s_t].groupby("Versenyző")["Másodperc"].idxmin()].sort_values("Másodperc")
+        all_tracks = sorted(df_f["Pálya"].unique())
+        if all_tracks:
+            p_sel = st.selectbox("Válassz pályát a részletekért", all_tracks)
+            t_df = df_f[df_f["Pálya"] == p_sel].sort_values("Másodperc")
+            # Csak a versenyzők legjobb idejét mutatjuk a rangsorban
+            t_df = t_df.loc[t_df.groupby("Versenyző")["Másodperc"].idxmin()].sort_values("Másodperc")
             for i, (_, r) in enumerate(t_df.iterrows(), 1):
-                st.markdown(f'<div class="track-row"><b>{i}. {r["Versenyző"]}</b>: {r["Idő"]} <br><small>🚗 {r["Autó"]}</small></div>', unsafe_allow_html=True)
-
+                st.markdown(f'<div class="track-row">{i}. <b>{r["Versenyző"]}</b>: {r["Idő"]} <small>({r["Autó"]})</small></div>', unsafe_allow_html=True)
+    else:
+        st.info("Még nincsenek adatok a tabella megjelenítéséhez.")
 # ADMINISZTRÁCIÓ
 with t3:
     st.header("⚙️ Rendszerkezelés")
@@ -218,6 +224,7 @@ with t3:
     if st.button("⚠️ GYÁRI PÁLYALISTA VISSZAÁLLÍTÁSA"):
         st.session_state.config = {"nevek": st.session_state.config["nevek"], "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
         sync_config(); st.rerun()
+
 
 
 
