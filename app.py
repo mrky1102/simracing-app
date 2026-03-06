@@ -224,7 +224,7 @@ with t3:
         st.session_state.admin_authenticated = False
 
     if not st.session_state.admin_authenticated:
-        password_input = st.text_input("Kérlek, add meg az admin jelszót", type="password")
+        password_input = st.text_input("Admin jelszó", type="password")
         if st.button("Bejelentkezés"):
             if password_input == st.secrets["ADMIN_PASSWORD"]:
                 st.session_state.admin_authenticated = True
@@ -234,55 +234,81 @@ with t3:
         if st.button("🔓 KIJELENTKEZÉS"):
             st.session_state.admin_authenticated = False; st.rerun()
         st.divider()
-        if st.button("🔄 FRISSÍTÉS GITHUBRÓL"):
+        if st.button("🔄 ADATOK FRISSÍTÉSE GITHUBRÓL"):
             st.session_state.app_data = load_from_github(); st.rerun()
 
-        # VERSENYZŐK
-        st.subheader("👤 Versenyzők")
-        c1, c2, c3 = st.columns(3)
-        with c1:
+        # 1. VERSENYZŐK
+        st.subheader("👤 Versenyzők kezelése")
+        v1, v2, v3 = st.columns(3)
+        with v1:
             new_v = st.text_input("Új versenyző")
-            if st.button("Hozzáadás"):
+            if st.button("Versenyző Mentése"):
                 if new_v: st.session_state.app_data["config"]["nevek"].append(new_v); save_to_github(st.session_state.app_data); st.rerun()
-        with c2:
-            mod_v_old = st.selectbox("Név módosítása", st.session_state.app_data["config"]["nevek"])
+        with v2:
+            mod_v_old = st.selectbox("Módosítandó név", st.session_state.app_data["config"]["nevek"])
             mod_v_new = st.text_input("Új név ")
-            if st.button("Átnevezés"):
-                if mod_v_new:
-                    idx = st.session_state.app_data["config"]["nevek"].index(mod_v_old)
-                    st.session_state.app_data["config"]["nevek"][idx] = mod_v_new; save_to_github(st.session_state.app_data); st.rerun()
-        with c3:
-            del_v = st.selectbox("Név törlése", st.session_state.app_data["config"]["nevek"])
-            if st.button("Törlés", type="primary"):
+            if st.button("Név Átírása"):
+                idx = st.session_state.app_data["config"]["nevek"].index(mod_v_old)
+                st.session_state.app_data["config"]["nevek"][idx] = mod_v_new; save_to_github(st.session_state.app_data); st.rerun()
+        with v3:
+            del_v = st.selectbox("Törlendő név", st.session_state.app_data["config"]["nevek"])
+            if st.button("Versenyző Törlése", type="primary"):
                 st.session_state.app_data["config"]["nevek"].remove(del_v); save_to_github(st.session_state.app_data); st.rerun()
 
         st.divider()
 
-        # JÁTÉKOK, KATEGÓRIÁK, PÁLYÁK
-        st.subheader("🎮 Játékok és Pályák")
-        g1, g2 = st.columns(2)
+        # 2. JÁTÉKOK (ÚJ FUNKCIÓK)
+        st.subheader("🎮 Játékok kezelése")
+        g1, g2, g3 = st.columns(3)
         with g1:
-            new_g = st.text_input("Új játék neve")
-            if st.button("Játék Mentése"):
-                if new_g: st.session_state.app_data["config"]["jatekok"][new_g] = {}; save_to_github(st.session_state.app_data); st.rerun()
+            new_g = st.text_input("Új játék hozzáadása")
+            if st.button("Játék Létrehozása"):
+                if new_g: 
+                    st.session_state.app_data["config"]["jatekok"][new_g] = {}
+                    save_to_github(st.session_state.app_data); st.rerun()
         with g2:
-            del_g = st.selectbox("Játék törlése", list(st.session_state.app_data["config"]["jatekok"].keys()))
-            if st.button("Játék Törlése", type="primary"):
-                del st.session_state.app_data["config"]["jatekok"][del_g]; save_to_github(st.session_state.app_data); st.rerun()
+            mod_g_old = st.selectbox("Átnevezendő játék", list(st.session_state.app_data["config"]["jatekok"].keys()))
+            mod_g_new = st.text_input("Játék új neve")
+            if st.button("Játék Átnevezése"):
+                if mod_g_new:
+                    st.session_state.app_data["config"]["jatekok"][mod_g_new] = st.session_state.app_data["config"]["jatekok"].pop(mod_g_old)
+                    save_to_github(st.session_state.app_data); st.rerun()
+        with g3:
+            del_g = st.selectbox("Törlendő játék", list(st.session_state.app_data["config"]["jatekok"].keys()))
+            if st.button("Játék Törlése ", type="primary"):
+                del st.session_state.app_data["config"]["jatekok"][del_g]
+                save_to_github(st.session_state.app_data); st.rerun()
 
-        sel_j_adm = st.selectbox("Szerkesztett játék", list(st.session_state.app_data["config"]["jatekok"].keys()))
+        st.divider()
+
+        # 3. KATEGÓRIÁK ÉS PÁLYÁK
+        st.subheader("📍 Kategóriák és Pályák")
+        sel_j_adm = st.selectbox("Melyik játékban szerkesztesz?", list(st.session_state.app_data["config"]["jatekok"].keys()))
         k1, k2 = st.columns(2)
         with k1:
-            new_k = st.text_input("Új kategória")
-            if st.button("Kat. hozzáadása"):
-                if new_k: st.session_state.app_data["config"]["jatekok"][sel_j_adm][new_k] = []; save_to_github(st.session_state.app_data); st.rerun()
-        with k2:
+            new_k = st.text_input("Új kategória (pl. Gr.3)")
+            if st.button("Kategória Hozzáadása"):
+                st.session_state.app_data["config"]["jatekok"][sel_j_adm][new_k] = []
+                save_to_github(st.session_state.app_data); st.rerun()
             kat_l = list(st.session_state.app_data["config"]["jatekok"][sel_j_adm].keys())
             if kat_l:
+                del_k = st.selectbox("Kategória törlése", kat_l)
+                if st.button("Kategória Törlése", type="primary"):
+                    del st.session_state.app_data["config"]["jatekok"][sel_j_adm][del_k]
+                    save_to_github(st.session_state.app_data); st.rerun()
+        with k2:
+            if kat_l:
                 sel_k_p = st.selectbox("Válassz kategóriát", kat_l)
-                new_p = st.text_input("Új pálya")
-                if st.button("Pálya hozzáadása"):
-                    if new_p: st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].append(new_p); save_to_github(st.session_state.app_data); st.rerun()
+                new_p = st.text_input("Új pálya neve")
+                if st.button("Pálya Hozzáadása"):
+                    st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].append(new_p)
+                    save_to_github(st.session_state.app_data); st.rerun()
+                p_l = st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p]
+                if p_l:
+                    del_p = st.selectbox("Pálya törlése", sorted(p_l))
+                    if st.button("Pálya Törlése ", type="primary"):
+                        st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
+                        save_to_github(st.session_state.app_data); st.rerun()
 
 
 
