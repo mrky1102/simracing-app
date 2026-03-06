@@ -152,31 +152,30 @@ with t1:
                 if st.form_submit_button("💾 MENTÉS"):
                     if ":" in ido_raw and "." in ido_raw:
                         try:
-                            parts = ido_raw.split(":")
-                            p = int(parts[0])
-                            mp = float(parts[1])
-                            total = p * 60 + mp
+                            p_part, mp_part = ido_raw.split(":")
+                            total = int(p_part) * 60 + float(mp_part)
                             new_row = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido_raw}
                             st.session_state.app_data["results"].append(new_row)
                             if save_to_github(st.session_state.app_data):
-                                st.success(f"✅ Mentve: {nev} - {ido_raw}")
-                                time.sleep(1.5)
+                                st.success(f"✅ Mentve!")
+                                time.sleep(1)
                                 st.rerun()
-                            else: st.error("GitHub hiba!")
-                        except: st.error("Hibás számformátum!")
+                        except: st.error("Hibás formátum!")
                     else: st.error("Formátum: p:mp.ezred")
-    else: st.info("Nincs játék felvéve.")
 
-# --- TAB 2: TABELLA ---
+# --- TAB 2: TABELLA ÉS ÉREMTÁBLÁZAT ---
 with t2:
     results = st.session_state.app_data["results"]
     if results:
         df = pd.DataFrame(results)
-        j_sel = st.selectbox("Bajnokság nézet", list(conf["jatekok"].keys()))
+        j_sel = st.selectbox("Játék választása", list(conf["jatekok"].keys()))
         df_f = df[df["Játék"] == j_sel]
         
-        pts = {n: 0 for n in conf["nevek"]}; medals = {n: {"a":0, "e":0, "b":0} for n in conf["nevek"]}
+        pts = {n: 0 for n in conf["nevek"]}
+        medals = {n: {"a":0, "e":0, "b":0} for n in conf["nevek"]}
+        
         if not df_f.empty:
+            # Minden pálya legjobb ideje versenyzőnként
             bests = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
             for track in bests["Pálya"].unique():
                 top3 = bests[bests["Pálya"] == track].sort_values("Másodperc").head(3)
@@ -188,6 +187,7 @@ with t2:
                         elif i==1: medals[v]["e"] += 1
                         elif i==2: medals[v]["b"] += 1
         
+        # Kártyák megjelenítése
         s_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
         cols = st.columns(len(s_pts) if s_pts else 1)
         for idx, (name, val) in enumerate(s_pts):
@@ -196,13 +196,10 @@ with t2:
             with cols[idx]: st.markdown(f'<div class="card {st_class}"><h1>{icon}</h1><div class="player-name">{name.upper()}</div><div class="points">{val} pont</div></div>', unsafe_allow_html=True)
             
         st.divider(); st.subheader("🏅 Éremtáblázat")
-        m_list = [{"Pilóta": n, "🥇": medals[n]["a"], "🥈": medals[n]["e"], "🥉": medals[n]["b"], "Össz": sum(medals[n].values())} for n in conf["nevek"]]
-        st.table(pd.DataFrame(m_list).sort_values("🥇", ascending=False))
-
-        st.divider(); st.subheader("🕒 Legutóbbi 5 rögzített idő")
-        for r in results[-5:][::-1]:
-            st.markdown(f'<div class="last-times"><b>{r["Dátum"]}</b> | {r["Versenyző"]} - <b>{r["Idő"]}</b><br><small>{r["Játék"]} | {r["Pálya"]}</small></div>', unsafe_allow_html=True)
+        m_list = [{"Pilóta": n, "Arany": medals[n]["a"], "Ezüst": medals[n]["e"], "Bronz": medals[n]["b"], "Össz": sum(medals[n].values())} for n in conf["nevek"]]
+        st.table(pd.DataFrame(m_list).sort_values("Arany", ascending=False))
     else: st.info("Még nincsenek eredmények.")
+        
 # --- BŐVÍTETT ADMIN ---
 with t3:
     st.header("⚙️ Adminisztrációs Központ")
@@ -324,6 +321,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
