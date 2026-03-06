@@ -39,38 +39,29 @@ DIRT_FULL = {
 # --- 2. GITHUB FELHŐ LOGIKA ---
 def load_from_github():
     try:
-        GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-        REPO_NAME = st.secrets["REPO_NAME"]
-        url = f"https://api.github.com/repos/{REPO_NAME}/contents/data.json"
-        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        token = st.secrets["GITHUB_TOKEN"]
+        repo = st.secrets["REPO_NAME"]
+        url = f"https://api.github.com/repos/{repo}/contents/data.json"
+        headers = {"Authorization": f"token {token}"}
         r = requests.get(url, headers=headers)
         if r.status_code == 200:
             content = base64.b64decode(r.json()["content"]).decode("utf-8")
             return json.loads(content)
     except:
         pass
-    # Alaphelyzet, ha nincs fájl vagy hiba van
-    return {
-        "results": [],
-        "config": {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
-    }
+    return None
 
 def save_to_github(data):
     try:
-        GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-        REPO_NAME = st.secrets["REPO_NAME"]
-        url = f"https://api.github.com/repos/{REPO_NAME}/contents/data.json"
-        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-        
+        token = st.secrets["GITHUB_TOKEN"]
+        repo = st.secrets["REPO_NAME"]
+        url = f"https://api.github.com/repos/{repo}/contents/data.json"
+        headers = {"Authorization": f"token {token}"}
         r = requests.get(url, headers=headers)
         sha = r.json()["sha"] if r.status_code == 200 else None
-        
-        content_bytes = json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")
-        content_base64 = base64.b64encode(content_bytes).decode("utf-8")
-        
+        content_base64 = base64.b64encode(json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")).decode("utf-8")
         payload = {"message": "SimRacing update", "content": content_base64}
         if sha: payload["sha"] = sha
-        
         res = requests.put(url, headers=headers, json=payload)
         return res.status_code in [200, 201]
     except:
@@ -78,50 +69,57 @@ def save_to_github(data):
 
 # --- 3. SESSION STATE INICIALIZÁLÁS ---
 if 'app_data' not in st.session_state:
-    st.session_state.app_data = load_from_github()
+    loaded = load_from_github()
+    if loaded:
+        st.session_state.app_data = loaded
+    else:
+        st.session_state.app_data = {
+            "results": [],
+            "config": {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
+        }
 
-# Biztonsági ellenőrzés: ha valamiért hiányozna a config kulcs
+# Biztonsági ellenőrzés a hiba ellen
 if "config" not in st.session_state.app_data:
     st.session_state.app_data["config"] = {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
 
 st.set_page_config(page_title="SimRacing Arena GITHUB-CLOUD", layout="wide")
-# --- 3. MEGJELENÉS ---
+
+# --- 4. MEGJELENÉS ---
 st.markdown("""
 <style>
-    .card { padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 2px solid #555; text-align: center; width: 100%; box-sizing: border-box; }
-    .gold { border: 4px solid #FFD700 !important; background-color: #3d3500; }
-    .silver { border: 4px solid #C0C0C0 !important; background-color: #2e2e2e; }
-    .bronze { border: 4px solid #CD7F32 !important; background-color: #331a00; }
+    .card { padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 4px solid #555; text-align: center; }
+    .gold { border-color: #FFD700 !important; background-color: #3d3500; }
     .track-row { background: #1e1e1e; padding: 10px; border-radius: 8px; margin-top: 5px; border: 1px solid #333; }
 </style>
 """, unsafe_allow_html=True)
 
 t1, t2, t3 = st.tabs(["🏁 ÚJ IDŐ", "🏆 TABELLA", "⚙️ ADMIN"])
 
-# ÚJ IDŐ RÖGZÍTÉSE
 with t1:
-    st.subheader("Idő rögzítése")
-    j_list = list(st.session_state.config["jatekok"].keys())
-    sel_jatek = st.selectbox("Játék", j_list, key="main_j")
-    kat_dict = st.session_state.config["jatekok"][sel_jatek]
-    sel_kat = st.selectbox("Kategória / Ország", sorted(list(kat_dict.keys())), key="main_k")
-    sel_palya = st.selectbox("Pálya / Szakasz", sorted(kat_dict[sel_kat]), key="main_p")
+    conf = st.session_state.app_data["config"]
+    sel_jatek = st.selectbox("Játék", list(conf["jatekok"].keys()))
+    kat_dict = conf["jatekok"][sel_jatek]
+    sel_kat = st.selectbox("Kategória", sorted(list(kat_dict.keys())))
+    sel_palya = st.selectbox("Pálya", sorted(kat_dict[sel_kat]))
 
     with st.form("entry", clear_on_submit=True):
-        auto = st.text_input("Használt autó")
-        nev = st.selectbox("Versenyző", st.session_state.config["nevek"])
+        auto = st.text_input("Autó")
+        nev = st.selectbox("Versenyző", conf["nevek"])
         ido = st.text_input("Idő (p:mp.ezred)")
-        if st.form_submit_button("💾 MENTÉS A FELHŐBE"):
+        if st.form_submit_button("💾 MENTÉS"):
             try:
-                p_p, mp_p = ido.split(":")
-                total = int(p_p) * 60 + float(mp_p)
-                new_row = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M"), sel_jatek, sel_kat, sel_palya, auto, nev, total, ido]], columns=st.session_state.results.columns)
-                st.session_state.results = pd.concat([st.session_state.results, new_row], ignore_index=True)
-                sync_results()
-                st.success("Sikeres mentés!")
-                st.rerun()
-            except: st.error("Hiba! Formátum: p:mp.ezred")
-
+                p, mp = ido.split(":")
+                total = int(p) * 60 + float(mp)
+                new_res = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
+                st.session_state.app_data["results"].append(new_res)
+                if save_to_github(st.session_state.app_data):
+                    st.success("Mentve a felhőbe!")
+                    st.rerun()
+                else:
+                    st.error("Felhő mentési hiba!")
+            except:
+                st.error("Hibás formátum!")
+                
 # TABELLA ÉS RANGSOROK
 with t2:
     j_list = list(st.session_state.config["jatekok"].keys())
@@ -220,6 +218,7 @@ with t3:
     if st.button("⚠️ GYÁRI PÁLYALISTA VISSZAÁLLÍTÁSA"):
         st.session_state.config = {"nevek": st.session_state.config["nevek"], "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
         sync_config(); st.rerun()
+
 
 
 
