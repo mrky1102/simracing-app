@@ -153,16 +153,17 @@ with t1:
                         try:
                             p, mp = ido.split(":")
                             total = int(p) * 60 + float(mp)
-                            new_row = {"id": datetime.now().timestamp(), "Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
+                            new_row = {"Dátum": datetime.now().strftime("%Y-%m-%d %H:%M"), "Játék": sel_jatek, "Kategória": sel_kat, "Pálya": sel_palya, "Autó": auto, "Versenyző": nev, "Másodperc": total, "Idő": ido}
                             st.session_state.app_data["results"].append(new_row)
-                            save_to_github(st.session_state.app_data)
-                            st.success("Sikeres mentés!")
-                            st.rerun()
+                            if save_to_github(st.session_state.app_data):
+                                st.success("Sikeres mentés!")
+                                st.rerun()
+                            else:
+                                st.error("Hiba a GitHub mentés során!")
                         except:
-                            st.error("Hiba történt a feldolgozáskor!")
+                            st.error("Érvénytelen számformátum!")
                     else:
-                        st.error("Hibás formátum! Használj kettőspontot és pontot (p:mp.ezred)")
-        else: st.warning("Nincsenek kategóriák.")
+                        st.error("Használd a p:mp.ezred formátumot!")
     else: st.info("Nincs játék.")
         
 # --- TABELLA (Javított dizájn) ---
@@ -345,6 +346,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
