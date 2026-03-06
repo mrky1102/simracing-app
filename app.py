@@ -36,37 +36,46 @@ DIRT_FULL = {
     "Sweden": ["Hamra (12.34 km)", "Älgsjön (7.35 km)", "Lysvik (12.67 km)", "Ransbysäter (11.98 km)", "Norraskoga (11.98 km)", "Skogsrallyt (5.25 km)", "Älgsjön Sprint (5.25 km)", "Björklangen (5.19 km)", "Östra Hinnsjön (5.19 km)", "Stor-Jangen Sprint (6.68 km)", "Stor-Jangen Sprint Reverse (6.68 km)", "Älgsjön Reverse (7.35 km)"]
 }
 
-# --- 2. FELHŐ KAPCSOLÓDÁS ---
-st.set_page_config(page_title="SimRacing Arena CLOUD", layout="wide")
-conn = st.connection("gsheets", type=GSheetsConnection)
+# --- 2. GITHUB FELHŐ LOGIKA ---
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+REPO_NAME = st.secrets["REPO_NAME"]
+FILE_PATH = "data.json"
 
-def load_all_data():
-    try:
-        res = conn.read(worksheet="results", ttl="0s")
-        conf = conn.read(worksheet="config", ttl="0s")
-        return res, conf
-    except:
-        return pd.DataFrame(columns=["Dátum", "Játék", "Kategória", "Pálya", "Autó", "Versenyző", "Másodperc", "Idő"]), None
+def load_from_github():
+    url = f"https://api.github.com/repos/{REPO_NAME}/contents/{FILE_PATH}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        content = base64.b64decode(r.json()["content"]).decode("utf-8")
+        return json.loads(content)
+    # Ha még nincs fájl, alaphelyzet
+    return {
+        "results": [],
+        "config": {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
+    }
 
-# Adatok inicializálása
-res_df, conf_df = load_all_data()
+def save_to_github(data):
+    url = f"https://api.github.com/repos/{REPO_NAME}/contents/{FILE_PATH}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    
+    # Sha lekérése a felülíráshoz
+    r = requests.get(url, headers=headers)
+    sha = r.json()["sha"] if r.status_code == 200 else None
+    
+    content_bytes = json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")
+    content_base64 = base64.b64encode(content_bytes).decode("utf-8")
+    
+    payload = {"message": "SimRacing adatfrissítés", "content": content_base64}
+    if sha: payload["sha"] = sha
+    
+    res = requests.put(url, headers=headers, json=payload)
+    return res.status_code in [200, 201]
 
-if 'results' not in st.session_state:
-    st.session_state.results = res_df
+# Inicializálás
+if 'app_data' not in st.session_state:
+    st.session_state.app_data = load_from_github()
 
-if 'config' not in st.session_state:
-    if conf_df is not None and not conf_df.empty:
-        st.session_state.config = json.loads(conf_df.iloc[0,0])
-    else:
-        st.session_state.config = {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
-
-def sync_config():
-    conf_json = json.dumps(st.session_state.config, ensure_ascii=False)
-    df_conf = pd.DataFrame([{"data": conf_json}])
-    conn.update(worksheet="config", data=df_conf)
-
-def sync_results():
-    conn.update(worksheet="results", data=st.session_state.results)
+st.set_page_config(page_title="SimRacing Arena GITHUB-CLOUD", layout="wide")
 
 # --- 3. MEGJELENÉS ---
 st.markdown("""
@@ -203,3 +212,4 @@ with t3:
     if st.button("⚠️ GYÁRI PÁLYALISTA VISSZAÁLLÍTÁSA"):
         st.session_state.config = {"nevek": st.session_state.config["nevek"], "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
         sync_config(); st.rerun()
+
