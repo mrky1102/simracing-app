@@ -1,0 +1,99 @@
+{
+    "results": [],
+    "config": {
+        "nevek": [
+            "mrky",
+            "Radnom",
+            "Nova"
+        ],
+        "jatekok": {
+            "Gran Turismo 7": {
+                "GT7 - World Circuits (Europe)": [
+                    "24 Heures du Mans (13.62 km)",
+                    "Autodromo Nazionale Monza (5.79 km)",
+                    "Brands Hatch GP (3.91 km)",
+                    "Circuit de Barcelona-Catalunya GP (4.67 km)",
+                    "Circuit de Spa-Francorchamps (7.00 km)",
+                    "Nürburgring 24h (25.37 km)",
+                    "Nürburgring Nordschleife (20.83 km)",
+                    "Red Bull Ring (4.31 km)",
+                    "Alsace Village (5.42 km)",
+                    "Dragon Trail Seaside (5.20 km)",
+                    "Lago Maggiore Full (5.80 km)"
+                ],
+                "GT7 - World Circuits (Americas)": [
+                    "Daytona Road Course (5.73 km)",
+                    "Interlagos (4.30 km)",
+                    "Laguna Seca (3.60 km)",
+                    "Road Atlanta (4.08 km)",
+                    "Watkins Glen Long (5.55 km)",
+                    "Willow Springs (3.95 km)",
+                    "Trial Mountain (3.98 km)",
+                    "Deep Forest (3.51 km)",
+                    "Grand Valley Highway 1 (5.10 km)"
+                ],
+                "GT7 - World Circuits (Asia-Oceania)": [
+                    "Fuji Speedway (4.56 km)",
+                    "Mount Panorama (6.21 km)",
+                    "Suzuka Full (5.80 km)",
+                    "Tsukuba (2.04 km)",
+                    "High Speed Ring (4.00 km)",
+                    "Tokyo Central (4.40 km)",
+                    "Autopolis Full (4.67 km)"
+                ]
+            },
+            "Dirt Rally 2.0": {
+                "Argentina": [
+                    "Las Juntas (8.25 km)",
+                    "Valle de los puentes (7.98 km)",
+                    "El Condor (5.21 km)"
+                ],
+                "Australia": [
+                    "Mount Kaye Pass (12.50 km)",
+                    "Chandlers Creek (12.34 km)"
+                ],
+                "Finland": [
+                    "Kakaristo (15.04 km)",
+                    "Kotajärvi (12.42 km)",
+                    "Hamelahti (15.04 km)"
+                ],
+                "Germany": [
+                    "Oberstein (11.67 km)",
+                    "Waldabstieg (5.39 km)"
+                ],
+                "Greece": [
+                    "Anodou Farmakas (9.61 km)",
+                    "Koryfi Dafni (9.50 km)"
+                ],
+                "Monaco": [
+                    "Col de Turini (9.84 km)",
+                    "Pra d’Alart (9.84 km)"
+                ],
+                "New Zealand": [
+                    "Waimarama Point (16.08 km)",
+                    "Ocean Beach (11.48 km)"
+                ],
+                "Scotland": [
+                    "Old Butterstone Muir (5.97 km)",
+                    "Glencastle Farm (5.25 km)"
+                ],
+                "Spain": [
+                    "Centenera (10.57 km)",
+                    "Viñedos Dardenya (6.55 km)"
+                ],
+                "USA": [
+                    "North Fork Pass (12.86 km)",
+                    "Hancock Creek (12.84 km)"
+                ],
+                "Wales": [
+                    "Sweet Lamb (9.90 km)",
+                    "Bidno Moorland (4.81 km)"
+                ],
+                "Sweden": [
+                    "Hamra (12.34 km)",
+                    "Älgsjön (7.35 km)"
+                ]
+            }
+        }
+    }
+}
