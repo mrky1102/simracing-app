@@ -37,46 +37,54 @@ DIRT_FULL = {
 }
 
 # --- 2. GITHUB FELHŐ LOGIKA ---
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-REPO_NAME = st.secrets["REPO_NAME"]
-FILE_PATH = "data.json"
-
 def load_from_github():
-    url = f"https://api.github.com/repos/{REPO_NAME}/contents/{FILE_PATH}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-    r = requests.get(url, headers=headers)
-    if r.status_code == 200:
-        content = base64.b64decode(r.json()["content"]).decode("utf-8")
-        return json.loads(content)
-    # Ha még nincs fájl, alaphelyzet
+    try:
+        GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+        REPO_NAME = st.secrets["REPO_NAME"]
+        url = f"https://api.github.com/repos/{REPO_NAME}/contents/data.json"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            content = base64.b64decode(r.json()["content"]).decode("utf-8")
+            return json.loads(content)
+    except:
+        pass
+    # Alaphelyzet, ha nincs fájl vagy hiba van
     return {
         "results": [],
         "config": {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
     }
 
 def save_to_github(data):
-    url = f"https://api.github.com/repos/{REPO_NAME}/contents/{FILE_PATH}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-    
-    # Sha lekérése a felülíráshoz
-    r = requests.get(url, headers=headers)
-    sha = r.json()["sha"] if r.status_code == 200 else None
-    
-    content_bytes = json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")
-    content_base64 = base64.b64encode(content_bytes).decode("utf-8")
-    
-    payload = {"message": "SimRacing adatfrissítés", "content": content_base64}
-    if sha: payload["sha"] = sha
-    
-    res = requests.put(url, headers=headers, json=payload)
-    return res.status_code in [200, 201]
+    try:
+        GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+        REPO_NAME = st.secrets["REPO_NAME"]
+        url = f"https://api.github.com/repos/{REPO_NAME}/contents/data.json"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        
+        r = requests.get(url, headers=headers)
+        sha = r.json()["sha"] if r.status_code == 200 else None
+        
+        content_bytes = json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")
+        content_base64 = base64.b64encode(content_bytes).decode("utf-8")
+        
+        payload = {"message": "SimRacing update", "content": content_base64}
+        if sha: payload["sha"] = sha
+        
+        res = requests.put(url, headers=headers, json=payload)
+        return res.status_code in [200, 201]
+    except:
+        return False
 
-# Inicializálás
+# --- 3. SESSION STATE INICIALIZÁLÁS ---
 if 'app_data' not in st.session_state:
     st.session_state.app_data = load_from_github()
 
-st.set_page_config(page_title="SimRacing Arena GITHUB-CLOUD", layout="wide")
+# Biztonsági ellenőrzés: ha valamiért hiányozna a config kulcs
+if "config" not in st.session_state.app_data:
+    st.session_state.app_data["config"] = {"nevek": NEVEK_DEFAULT, "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
 
+st.set_page_config(page_title="SimRacing Arena GITHUB-CLOUD", layout="wide")
 # --- 3. MEGJELENÉS ---
 st.markdown("""
 <style>
@@ -212,6 +220,7 @@ with t3:
     if st.button("⚠️ GYÁRI PÁLYALISTA VISSZAÁLLÍTÁSA"):
         st.session_state.config = {"nevek": st.session_state.config["nevek"], "jatekok": {"Gran Turismo 7": GT7_FULL, "Dirt Rally 2.0": DIRT_FULL}}
         sync_config(); st.rerun()
+
 
 
 
