@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import requests
 import base64
+import time
 
 # --- 1. ALAPÉRTELMEZETT PÁLYALISTA ---
 NEVEK_DEFAULT = ["mrky", "Radnom", "Nova"]
@@ -139,11 +140,11 @@ with t1:
     conf = st.session_state.app_data["config"]
     j_list = list(conf["jatekok"].keys())
     if j_list:
-        sel_jatek = st.selectbox("Játék választása", j_list)
+        sel_jatek = st.selectbox("Játék", j_list)
         kat_dict = conf["jatekok"][sel_jatek]
         if kat_dict:
-            sel_kat = st.selectbox("Kategória választása", sorted(list(kat_dict.keys())))
-            sel_palya = st.selectbox("Pálya választása", sorted(kat_dict[sel_kat]))
+            sel_kat = st.selectbox("Kategória", sorted(list(kat_dict.keys())))
+            sel_palya = st.selectbox("Pálya", sorted(kat_dict[sel_kat]))
             
             with st.form("entry_form", clear_on_submit=True):
                 auto = st.text_input("Használt autó")
@@ -172,49 +173,59 @@ with t1:
                             
                             st.session_state.app_data["results"].append(new_entry)
                             if save_to_github(st.session_state.app_data):
-                                st.success(f"Sikeres mentés: {nev} - {ido_raw}")
+                                st.success(f"✅ Mentve: {nev} - {ido_raw}")
+                                time.sleep(1.5) # Megvárjuk, amíg elolvassák
                                 st.rerun()
                             else:
-                                st.error("GitHub hiba! Ellenőrizd a kapcsolatot.")
-                        except ValueError:
-                            st.error("Érvénytelen számok az időben!")
+                                st.error("Mentési hiba!")
+                        except:
+                            st.error("Hibás számformátum!")
                     else:
-                        st.error("Használd a pontos formátumot (pl. 1:24.503)!")
-    else: st.info("Nincs játék az adatbázisban.")
+                        st.error("Használd a p:mp.ezred formátumot!")
+    else: st.info("Nincs játék.")
         
 # --- TABELLA (Javított dizájn) ---
 with t2:
-    results_list = st.session_state.app_data["results"]
-    df = pd.DataFrame(results_list)
-    if not df.empty:
-        j_sel = st.selectbox("Bajnokság választása", list(conf["jatekok"].keys()))
-        df_f = df[df["Játék"] == j_sel]
+    results = st.session_state.app_data["results"]
+    if results:
+        # Felső rész: Ponttáblázat
+        df = pd.DataFrame(results)
+        j_view = st.selectbox("Melyik játék tabelláját nézzük?", list(conf["jatekok"].keys()))
+        df_f = df[df["Játék"] == j_view]
         
-        # Pontok és érmek kiszámítása
-        pts = {n: 0 for n in conf["nevek"]}
-        medals = {n: {"arany": 0, "ezüst": 0, "bronz": 0} for n in conf["nevek"]}
-        
+        pts = {n: 0 for n in conf["nevek"]}; medals = {n: {"a":0, "e":0, "b":0} for n in conf["nevek"]}
         if not df_f.empty:
-            best_times = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
-            for track in best_times["Pálya"].unique():
-                tr_res = best_times[best_times["Pálya"] == track].sort_values("Másodperc").head(3)
-                for i, (_, row) in enumerate(tr_res.iterrows()):
-                    v = row["Versenyző"]
+            bests = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
+            for track in bests["Pálya"].unique():
+                top3 = bests[bests["Pálya"] == track].sort_values("Másodperc").head(3)
+                for i, (_, r) in enumerate(top3.iterrows()):
+                    v = r["Versenyző"]
                     if v in pts:
-                        pts[v] += (3 if i == 0 else 2 if i == 1 else 1)
-                        if i == 0: medals[v]["arany"] += 1
-                        elif i == 1: medals[v]["ezüst"] += 1
-                        elif i == 2: medals[v]["bronz"] += 1
+                        pts[v] += (3 if i==0 else 2 if i==1 else 1)
+                        if i==0: medals[v]["a"] += 1
+                        elif i==1: medals[v]["e"] += 1
+                        elif i==2: medals[v]["b"] += 1
+        
+        s_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
+        cols = st.columns(len(s_pts) if s_pts else 1)
+        for idx, (name, val) in enumerate(s_pts):
+            st_class = "gold" if idx==0 else "silver" if idx==1 else "bronze" if idx==2 else ""
+            icon = "🥇" if idx==0 else "🥈" if idx==1 else "🥉" if idx==2 else f"#{idx+1}"
+            with cols[idx]: st.markdown(f'<div class="card {st_class}"><h4>{icon} {name.upper()}</h4><b>{val} pont</b></div>', unsafe_allow_html=True)
 
-        # 1. Pontszám kártyák
-        sorted_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
-        cols = st.columns(len(sorted_pts))
-        for idx, (name, score) in enumerate(sorted_pts):
-            style = "gold" if idx == 0 else "silver" if idx == 1 else "bronze" if idx == 2 else ""
-            m_icon = "🥇" if idx == 0 else "🥈" if idx == 1 else "🥉" if idx == 2 else f"#{idx+1}"
-            with cols[idx]:
-                st.markdown(f'<div class="card {style}"><span class="medal-icon">{m_icon}</span><div class="player-name">{name.upper()}</div><div class="points">{score} pont</div></div>', unsafe_allow_html=True)
-
+        # Alsó rész: Legutóbbi 5 mentés
+        st.divider()
+        st.subheader("🕒 Legutóbbi 5 rögzített idő")
+        last_5 = results[-5:][::-1] # Utolsó 5 fordított sorrendben
+        for r in last_5:
+            st.markdown(f"""
+            <div class="last-times">
+                <b>{r['Dátum']}</b> | {r['Versenyző']} - <b>{r['Idő']}</b><br>
+                <small>{r['Játék']} | {r['Pálya']} ({r['Autó']})</small>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("Még nincsenek eredmények.")
         # 2. Összesített éremtáblázat
         st.divider()
         st.subheader("🏅 Összesített Éremtáblázat")
@@ -362,6 +373,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
