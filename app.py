@@ -86,50 +86,23 @@ st.set_page_config(page_title="SimRacing Arena v41", layout="wide")
 # --- 4. JAVÍTOTT CSS (Középre igazítás fix) ---
 st.markdown("""
 <style>
-    /* Alap kártya stílus fix színekkel a láthatóságért */
     .card { 
-        padding: 20px; 
-        border-radius: 15px; 
-        margin-bottom: 10px; 
-        border: 2px solid #555; 
-        text-align: center; 
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: #222222; /* Fix sötét háttér */
-        color: #ffffff !important;   /* Fix fehér szöveg */
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        padding: 20px; border-radius: 15px; margin-bottom: 10px; border: 2px solid #555; 
+        text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background-color: #1e1e1e; color: #ffffff !important; box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        min-height: 180px;
     }
-    
-    /* Érmek színei - kicsit élénkebbek a kontraszt miatt */
-    .gold { border: 4px solid #FFD700 !important; background-color: #332d00 !important; }
-    .silver { border: 4px solid #C0C0C0 !important; background-color: #2b2b2b !important; }
-    .bronze { border: 4px solid #CD7F32 !important; background-color: #301e00 !important; }
-    
-    .medal-icon { font-size: 45px; margin-bottom: 5px; display: block; }
-    
-    /* Feliratok színeinek kényszerítése */
-    .player-name { 
-        font-weight: bold; 
-        font-size: 20px; 
-        margin-top: 5px; 
-        color: #ffffff !important; 
-    }
-    .points { 
-        font-size: 16px; 
-        color: #FFD700 !important; /* Arany színű pontok a jobb láthatóságért */
-        font-weight: bold;
-    }
-    
-    .track-row { 
-        background: #1e1e1e; 
-        color: white !important;
-        padding: 10px; 
-        border-radius: 8px; 
-        margin-top: 5px; 
-        border: 1px solid #444; 
-    }
+    .gold { border: 4px solid #FFD700 !important; background-color: #2b2500 !important; }
+    .silver { border: 4px solid #C0C0C0 !important; background-color: #222222 !important; }
+    .bronze { border: 4px solid #CD7F32 !important; background-color: #261a00 !important; }
+    .medal-icon { font-size: 50px; margin-bottom: 5px; line-height: 1; }
+    .player-name { font-weight: bold; font-size: 22px; margin: 10px 0; color: #ffffff !important; line-height: 1.2; }
+    .points { font-size: 18px; color: #FFD700 !important; font-weight: bold; }
+    .track-row { background: #1e1e1e; color: white !important; padding: 12px; border-radius: 8px; margin-top: 5px; border: 1px solid #444; }
+    .last-times { background-color: #1e1e1e; padding: 12px; border-radius: 10px; border-left: 5px solid #00ff00; margin-top: 10px; color: white; border: 1px solid #333; border-left: 5px solid #00ff00; }
+    .medal-table { width: 100%; border-collapse: collapse; text-align: center; background-color: #1e1e1e; color: white; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+    .medal-table th { background-color: #333; padding: 12px; }
+    .medal-table td { padding: 12px; border-bottom: 1px solid #444; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -168,14 +141,13 @@ with t2:
     results = st.session_state.app_data["results"]
     if results:
         df = pd.DataFrame(results)
-        j_sel = st.selectbox("Játék választása", list(conf["jatekok"].keys()))
+        j_sel = st.selectbox("Játék választása", list(conf["jatekok"].keys()), key="rank_j")
         df_f = df[df["Játék"] == j_sel]
         
         pts = {n: 0 for n in conf["nevek"]}
         medals = {n: {"a":0, "e":0, "b":0} for n in conf["nevek"]}
         
         if not df_f.empty:
-            # Minden pálya legjobb ideje versenyzőnként
             bests = df_f.loc[df_f.groupby(["Pálya", "Versenyző"])["Másodperc"].idxmin()]
             for track in bests["Pálya"].unique():
                 top3 = bests[bests["Pálya"] == track].sort_values("Másodperc").head(3)
@@ -187,17 +159,45 @@ with t2:
                         elif i==1: medals[v]["e"] += 1
                         elif i==2: medals[v]["b"] += 1
         
-        # Kártyák megjelenítése
+        # 1. Pontszám kártyák (Dizájn Fix)
         s_pts = sorted(pts.items(), key=lambda x: x[1], reverse=True)
         cols = st.columns(len(s_pts) if s_pts else 1)
         for idx, (name, val) in enumerate(s_pts):
             st_class = "gold" if idx==0 else "silver" if idx==1 else "bronze" if idx==2 else ""
             icon = "🥇" if idx==0 else "🥈" if idx==1 else "🥉" if idx==2 else f"#{idx+1}"
-            with cols[idx]: st.markdown(f'<div class="card {st_class}"><h1>{icon}</h1><div class="player-name">{name.upper()}</div><div class="points">{val} pont</div></div>', unsafe_allow_html=True)
+            with cols[idx]:
+                st.markdown(f"""
+                <div class="card {st_class}">
+                    <div class="medal-icon">{icon}</div>
+                    <div class="player-name">{name.upper()}</div>
+                    <div class="points">{val} pont</div>
+                </div>
+                """, unsafe_allow_html=True)
             
-        st.divider(); st.subheader("🏅 Éremtáblázat")
+        # 2. Éremtáblázat
+        st.divider(); st.subheader("🏅 Összesített Éremtáblázat")
         m_list = [{"Pilóta": n, "Arany": medals[n]["a"], "Ezüst": medals[n]["e"], "Bronz": medals[n]["b"], "Össz": sum(medals[n].values())} for n in conf["nevek"]]
-        st.table(pd.DataFrame(m_list).sort_values("Arany", ascending=False))
+        m_df = pd.DataFrame(m_list).sort_values("Arany", ascending=False)
+        medal_html = "<table class='medal-table'><tr><th>Pilóta</th><th>🥇</th><th>🥈</th><th>🥉</th><th>Össz</th></tr>"
+        for _, r in m_df.iterrows():
+            medal_html += f"<tr><td><b>{r['Pilóta']}</b></td><td>{r['Arany']}</td><td>{r['Ezüst']}</td><td>{r['Bronz']}</td><td>{r['Össz']}</td></tr>"
+        st.markdown(medal_html + "</table>", unsafe_allow_html=True)
+
+        # 3. Pálya Rangsor (Visszatéve!)
+        st.divider(); st.subheader("📍 Pálya Rangsorok")
+        all_tr = sorted(df_f["Pálya"].unique())
+        if all_tr:
+            p_sel = st.selectbox("Válassz pályát", all_tr)
+            t_df = df_f[df_f["Pálya"] == p_sel].sort_values("Másodperc")
+            # Csak a versenyzők legjobb idejét mutatjuk
+            t_df = t_df.loc[t_df.groupby("Versenyző")["Másodperc"].idxmin()].sort_values("Másodperc")
+            for i, (_, r) in enumerate(t_df.iterrows(), 1):
+                st.markdown(f'<div class="track-row">{i}. <b>{r["Versenyző"]}</b>: {r["Idő"]} <small>({r["Autó"]})</small></div>', unsafe_allow_html=True)
+
+        # 4. Legutóbbi idők (Visszatéve!)
+        st.divider(); st.subheader("🕒 Legutóbbi 5 rögzített idő")
+        for r in results[-5:][::-1]:
+            st.markdown(f'<div class="last-times"><b>{r["Dátum"]}</b> | {r["Versenyző"]} - <b>{r["Idő"]}</b><br><small>{r["Játék"]} | {r["Pálya"]} ({r["Autó"]})</small></div>', unsafe_allow_html=True)
     else: st.info("Még nincsenek eredmények.")
         
 # --- BŐVÍTETT ADMIN ---
@@ -321,6 +321,7 @@ with t3:
                     if st.button("Pálya Törlése ", type="primary"):
                         st.session_state.app_data["config"]["jatekok"][sel_j_adm][sel_k_p].remove(del_p)
                         save_to_github(st.session_state.app_data); st.rerun()
+
 
 
 
