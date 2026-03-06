@@ -9,16 +9,33 @@ import base64
 NEVEK_DEFAULT = ["mrky", "Radnom", "Nova"]
 
 GT7_FULL = {
-    "GT7 - World Circuits (Europe)": ["24 Heures du Mans (13.62 km)", "Autodromo Nazionale Monza (5.79 km)", "Circuit de Spa-Francorchamps (7.00 km)", "Nürburgring 24h (25.37 km)", "Red Bull Ring (4.31 km)"],
-    "GT7 - World Circuits (Americas)": ["Daytona Road Course (5.73 km)", "Interlagos (4.30 km)", "Laguna Seca (3.60 km)", "Watkins Glen Long (5.55 km)"],
-    "GT7 - World Circuits (Asia-Oceania)": ["Mount Panorama (6.21 km)", "Suzuka Full (5.80 km)", "Tsukuba (2.04 km)"]
+    "GT7 - World Circuits (Europe)": [
+        "24 Heures du Mans (13.62 km)", "24 Heures du Mans - No Chicane (13.62 km)", "Autodromo Nazionale Monza (5.79 km)", "Autodromo Nazionale Monza - No Chicane (5.79 km)", "Brands Hatch GP (3.91 km)", "Brands Hatch Indy (1.94 km)", "Circuit de Barcelona-Catalunya GP (4.67 km)", "Circuit de Barcelona-Catalunya No Chicane (4.65 km)", "Circuit de Barcelona-Catalunya National (2.97 km)", "Circuit de Barcelona-Catalunya Rallycross (1.13 km)", "Circuit de Spa-Francorchamps (7.00 km)", "Spa 24h Layout (7.00 km)", "Nürburgring 24h (25.37 km)", "Nürburgring Endurance (24.37 km)", "Nürburgring GP (5.14 km)", "Nürburgring Nordschleife (20.83 km)", "Nürburgring Nordschleife Tourist (19.10 km)", "Nürburgring Sprint (3.62 km)", "Red Bull Ring (4.31 km)", "Red Bull Ring Short (2.33 km)", "Sardegna Road A (5.11 km)", "Sardegna Road A Rev (5.11 km)", "Sardegna Road B (3.89 km)", "Sardegna Road B Rev (3.89 km)", "Sardegna Road C (2.66 km)", "Sardegna Road C Rev (2.66 km)", "Sainte-Croix A (9.47 km)", "Sainte-Croix A Rev (9.47 km)", "Sainte-Croix B (7.06 km)", "Sainte-Croix B Rev (7.06 km)", "Sainte-Croix C (10.82 km)", "Sainte-Croix C Rev (10.82 km)", "Alsace Village (5.42 km)", "Alsace Village Rev (5.42 km)", "Alsace Test Course (1.99 km)", "Dragon Trail Seaside (5.20 km)", "Dragon Trail Seaside Rev (5.20 km)", "Dragon Trail Gardens (4.35 km)", "Dragon Trail Gardens Rev (4.35 km)", "Lago Maggiore Full (5.80 km)", "Lago Maggiore Full Rev (5.80 km)", "Lago Maggiore Centre (1.70 km)", "Lago Maggiore East (3.64 km)", "Lago Maggiore West (4.16 km)"
+    ],
+    "GT7 - World Circuits (Americas)": [
+        "Daytona Road Course (5.73 km)", "Daytona Tri-Oval (4.02 km)", "Interlagos (4.30 km)", "Laguna Seca (3.60 km)", "Road Atlanta (4.08 km)", "Watkins Glen Long (5.55 km)", "Watkins Glen Short (3.95 km)", "Willow Springs Big Willow (3.95 km)", "Willow Springs Streets (2.67 km)", "Willow Springs Horse Thief (1.63 km)", "Grand Valley Highway 1 (5.10 km)", "Grand Valley Highway 1 Rev (5.10 km)", "Grand Valley South (2.00 km)", "Trial Mountain (3.98 km)", "Trial Mountain Rev (3.98 km)", "Deep Forest (3.51 km)", "Deep Forest Rev (3.51 km)", "Blue Moon Bay (3.20 km)", "Blue Moon Bay Rev (3.20 km)", "Blue Moon Bay Infield A (3.35 km)", "Blue Moon Bay Infield B (2.86 km)", "Colorado Springs Lake (2.99 km)", "Fishermans Ranch (6.89 km)", "Special Stage Route X (30.28 km)"
+    ],
+    "GT7 - World Circuits (Asia-Oceania)": [
+        "Autopolis Full (4.67 km)", "Autopolis Short (3.02 km)", "Fuji Speedway (4.56 km)", "Fuji Speedway Short (4.52 km)", "Mount Panorama (6.21 km)", "Suzuka Full (5.80 km)", "Suzuka East (2.24 km)", "Tsukuba (2.04 km)", "Kyoto Yamagiwa (4.91 km)", "Kyoto Miyabi (2.38 km)", "Kyoto Yamagiwa+Miyabi (6.84 km)", "High Speed Ring (4.00 km)", "High Speed Ring Rev (4.00 km)", "Tokyo Central Clockwise (4.40 km)", "Tokyo East Clockwise (7.30 km)", "Tokyo South Clockwise (5.20 km)"
+    ]
 }
 
 DIRT_FULL = {
-    "Argentina": ["Las Juntas (8.25 km)", "El Condor (5.21 km)"],
-    "Finland": ["Kakaristo (15.04 km)", "Kotajärvi (12.42 km)"],
-    "Wales": ["Sweet Lamb (9.90 km)", "Bidno Moorland (4.81 km)"]
+    "Argentina": ["Las Juntas (8.25 km)", "Valle de los puentes (7.98 km)", "Camino a La Puerta (8.25 km)", "San Isidro (4.48 km)", "El Condor (5.21 km)", "Miraflores (3.35 km)", "Capilla del Monte (4.48 km)", "La Merced (2.84 km)", "Camino a Coneta (4.48 km)", "Huillaprima (3.35 km)", "El Rodeo (2.84 km)", "Valle de los puentes reverse (7.98 km)"],
+    "Australia": ["Mount Kaye Pass (12.50 km)", "Chandlers Creek (12.34 km)", "Bondi Forest (7.01 km)", "Rockton Plains (6.89 km)", "Noorinbee Ridge Ascent (5.28 km)", "Noorinbee Ridge Descent (5.28 km)", "Taylor Farm (5.28 km)", "Yambulla Mountain Ascent (6.64 km)", "Old South Road (6.64 km)", "Mount Kaye Pass Reverse (12.50 km)", "Chandlers Creek Reverse (12.34 km)", "Bondi Forest Reverse (7.01 km)"],
+    "Finland": ["Kotajärvi (12.42 km)", "Isojärvi (15.04 km)", "Kakaristo (15.04 km)", "Pitäjävesi (12.42 km)", "Ouninpohja (15.04 km)", "Hamelahti (15.04 km)", "Kailajärvi (7.51 km)", "Naajärvi (7.51 km)", "Kontinjärvi (15.04 km)", "Paskuri (12.42 km)", "Isojärvi Reverse (15.04 km)", "Kakaristo Reverse (15.04 km)"],
+    "Germany": ["Oberstein (11.67 km)", "Frauenberg (11.67 km)", "Waldabstieg (5.39 km)", "Kreuzungsring (6.28 km)", "Verbundsring (5.85 km)", "Innerer Feld-Sprint (5.85 km)", "Ruschberg (11.67 km)", "Hammerstein (11.67 km)", "Kreuzungsring reverse (6.28 km)", "Innerer Feld-Sprint umgekehrt (5.85 km)", "Verbundsring reverse (5.85 km)", "Waldabstieg reverse (5.39 km)"],
+    "Greece": ["Anodou Farmakas (9.61 km)", "Koryfi Dafni (9.50 km)", "Abies Koilada (9.61 km)", "Ourea Psila (9.50 km)", "Fourkéta Kourva (4.81 km)", "Kathodo Leonti (4.81 km)", "Tsiristra (4.69 km)", "Perasma Platani (4.69 km)", "Ourea Spevsi (9.50 km)", "Fourkéta Kourva Reverse (4.81 km)", "Anodou Farmakas Reverse (9.61 km)", "Koryfi Dafni Reverse (9.50 km)"],
+    "Monaco": ["Col de Turini - Départ (9.84 km)", "Pra d’Alart (9.84 km)", "Route de Turini (10.85 km)", "Col de Turini - Départ en descente (6.84 km)", "Col de Turini - Descente (5.17 km)", "Gordolon - Courte montée (5.17 km)", "Col de Turini - Sprint en montée (4.72 km)", "Col de Turini - Sprint en descente (4.72 km)", "Approche du Col de Turini - Montée (3.95 km)", "Route de Turini - Descente (3.95 km)", "Pra d’Alart Reverse (9.84 km)", "Vallée descendante (5.17 km)"],
+    "New Zealand": ["Waimarama Point (16.08 km)", "Te Awanga Forward (11.48 km)", "Ocean Beach (11.48 km)", "Elsthorpe Sprint Forward (7.42 km)", "Waimarama Sprint Forward (7.42 km)", "Maungaturoto (16.08 km)", "Te Awanga Reverse (11.48 km)", "Ocean Beach Reverse (11.48 km)", "Elsthorpe Sprint Reverse (7.42 km)", "Waimarama Point Reverse (16.08 km)", "Te Awanga Sprint Forward (11.48 km)", "Waimarama Sprint Reverse (7.42 km)"],
+    "Poland": ["Czarny Las (14.59 km)", "Jezioro Rotcze (13.42 km)", "Zagórze (14.59 km)", "Leśna Dzicz (13.42 km)", "Marynka (7.74 km)", "Borysik (7.74 km)", "Jagodno (14.59 km)", "Lejno (13.42 km)", "Kopina (14.59 km)", "Zieńki (13.42 km)", "Uściwierz (7.74 km)", "Borysik Reverse (7.74 km)"],
+    "Scotland": ["Old Butterstone Muir (5.97 km)", "Glencastle Farm (5.25 km)", "Rosebank Farm (5.97 km)", "Newhouse Bridge (5.25 km)", "South Morningside (5.25 km)", "Annbank Station (5.97 km)", "Old Butterstone Muir Reverse (5.97 km)", "Glencastle Farm Reverse (5.25 km)", "Annbank Station Reverse (5.97 km)", "Rosebank Farm Reverse (5.97 km)", "Old Butterstone Loch (5.97 km)", "Annbank Station Forward (5.97 km)"],
+    "Spain": ["Comienzo en Bellriu (14.34 km)", "Final en Bellriu (14.34 km)", "Camino a Centenera (10.57 km)", "Centenera (10.57 km)", "Ascenso bosque Montverd (6.81 km)", "Salida desde Montverd (7.01 km)", "Ascenso por valle el Gualet (7.01 km)", "Viñedos Dardenya (6.55 km)", "Viñedos Dardenya inversa (6.55 km)", "Viñedos belül valle Parra (6.81 km)", "Subida por carretera (4.58 km)", "Descenso por carretera (4.58 km)"],
+    "USA": ["North Fork Pass (12.86 km)", "Hancock Creek (12.84 km)", "Tolt Valley Sprint (6.43 km)", "Beaver Creek Trail (6.43 km)", "Oak Canyon Run (6.41 km)", "Mountain Knolls (6.41 km)", "North Fork Pass Reverse (12.86 km)", "Hancock Creek Reverse (12.84 km)", "Tolt Valley Sprint Reverse (6.43 km)", "Beaver Creek Trail Reverse (6.43 km)", "Oak Canyon Run Reverse (6.41 km)", "Mountain Knolls Reverse (6.41 km)"],
+    "Wales": ["Bidno Moorland (4.81 km)", "Sweet Lamb (9.90 km)", "Pant Mawr (4.81 km)", "Dyffryn Afon (9.90 km)", "River Severn Valley (9.90 km)", "Geufron Forest (10.00 km)", "Manod (4.81 km)", "Bronfelen (11.40 km)", "Fferm Wynt Reverse (5.69 km)", "Bidno Moorland Reverse (4.81 km)", "Pant Mawr Reverse (4.81 km)", "Sweet Lamb Reverse (9.90 km)"],
+    "Sweden": ["Hamra (12.34 km)", "Älgsjön (7.35 km)", "Lysvik (12.67 km)", "Ransbysäter (11.98 km)", "Norraskoga (11.98 km)", "Skogsrallyt (5.25 km)", "Älgsjön Sprint (5.25 km)", "Björklangen (5.19 km)", "Östra Hinnsjön (5.19 km)", "Stor-Jangen Sprint (6.68 km)", "Stor-Jangen Sprint Reverse (6.68 km)", "Älgsjön Reverse (7.35 km)"]
 }
+
 
 # --- 2. FELHŐ KEZELÉS (GITHUB) ---
 def load_from_github():
@@ -279,4 +296,5 @@ with t3:
     st.divider()
     if st.button("🚨 ÖSSZES EREDMÉNY TÖRLÉSE (VÉGLEGES)", type="primary"):
         st.session_state.app_data["results"] = []; save_to_github(st.session_state.app_data); st.rerun()
+
 
